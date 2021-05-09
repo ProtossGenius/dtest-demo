@@ -1,0 +1,90 @@
+#!python3
+#-*- coding:utf-8 -*-#
+import json
+import os 
+from colorama import  init, Fore, Back, Style
+import threading
+init(autoreset=True)
+class Colored(object):
+    #  前景色:红色  背景色:默认
+    def red(self, s):
+        return Fore.RED + s + Fore.RESET
+    #  前景色:绿色  背景色:默认
+    def green(self, s):
+        return Fore.GREEN + s + Fore.RESET
+    #  前景色:黄色  背景色:默认
+    def yellow(self, s):
+        return Fore.YELLOW + s + Fore.RESET
+
+color = Colored()
+
+def info(msg):
+    print(color.green('[info]'+msg))
+
+def error(msg):
+    print(color.red('[error]' + msg))
+
+def warn(msg):
+    print(color.yellow('[warn]'+msg))
+
+third_part = './third_part'
+os.system('rm -rf %s' % third_part)
+os.mkdir(third_part)
+
+def getDirName(repository):
+   splitlist= repository.split('/')
+   return splitlist[len(splitlist)-1]
+
+def install_rely(rely, index):
+    if 'repository' not in rely:
+        warn("""there is an error, repository not exist.
+                whose index in rely.json is %d""" % count)
+        return
+    repository= rely['repository']
+    branch = 'release'
+    if 'branch' in rely:
+        branch = rely['branch']
+    info("installing repository %s " % repository)
+    dirName = getDirName(repository)
+    os.system("rm -rf /tmp/" + dirName)
+    os.system('cd /tmp && git clone https://%s --branch %s' % (repository, branch))
+    os.system('rm -rf /tmp/%s/.git' % (dirName))
+    os.system('cp -r /tmp/%s/* ./%s/' % (dirName, third_part))
+    if 'commands' not in rely :
+        return
+    commands= rely['commands']
+    if isinstance(commands, str):
+        os.system(commands)
+        return
+    if not isinstance(commands, list):
+        warn("unexcept commands type when installing [%s], its value is : %s" % (repository, commands))
+        return
+    for cmd in commands:
+        if not isinstance(cmd, str):
+            warn("unexcept command when installing [%s], its value is : %s" % (repository, cmd))
+            continue
+        os.system(cmd)
+
+
+
+f = open("./rely.json", 'r')
+relys = f.read()
+relyList = json.loads(relys)
+index = 0
+
+threads=[]
+os.system("rm -rf ./third_part/include/* ./third_part/lib/*")
+## may use multi-thread will run faster.
+for rely in relyList:
+    print(rely)
+    t = threading.Thread(target=install_rely,args=(rely, index))
+    index = index + 1
+    threads.append(t)
+    t.start()
+
+for thread in threads:
+    thread.join()
+
+info("update finish")
+
+
