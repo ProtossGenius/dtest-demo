@@ -1,4 +1,4 @@
 [
-	{"repository":"github.com/ProtossGenius/smncpp"},
-	{"repository":"github.com/ProtossGenius/smdtest"}
+	{"repository":"github.com/ProtossGenius/smncpp", "method":"git_cmake"},
+	{"repository":"github.com/ProtossGenius/smdtest", "method":"git_cmake"}
 ]

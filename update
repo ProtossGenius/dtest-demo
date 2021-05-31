@@ -35,21 +35,74 @@ def getDirName(repository):
    splitlist= repository.split('/')
    return splitlist[len(splitlist)-1]
 
+def oget(obj, key, dft=''):
+    if key in obj:
+        return obj[key]
+
+    return dft
+
+def install_git_cmake_rely(repository, dirName, rely):
+    install_git(repository, dirName)
+    os.system('cd /tmp/%s && cmake . && make && sudo make install' % dirName)
+
+def install_wget_cmake_rely(repository, dirName , rely):
+    install_wget(repository, dirName)
+    os.system('cd /tmp/%s && cmake . && make && sudo make install' % dirName)
+
+def install_git_binary(repository, dirName, rely):
+    branch = oget(rely, 'branch', 'release')
+    os.system('cd /tmp && git clone https://%s --branch %s %s' % (repository, branch, dirName))
+    os.system('rm -rf /tmp/%s/.git' % (dirName))
+    os.system('cp -r /tmp/%s/* ./%s/' % (dirName, third_part))
+
+def install_wget_binary(repository, dirName, rely):
+    os.system('cd /tmp && wget %s %s' % (repository, dirName))
+    os.system('cp -r /tmp/%s/* ./%s/' % (dirName, third_part))
+
+def insstall_git_make_rely(repository, dirName, rely):
+    install_git(repository)
+    os.system('cd /tmp/%s && make && sudo make install' % dirName)
+
+def insstall_wget_make_rely(repository, dirName, rely):
+    install_wget(repository, dirName)
+    os.system('cd /tmp/%s && make && sudo make install' % dirName)
+
+def install_git(repository, dirName, rely=None):
+    os.system('cd /tmp && git clone https://%s %s' %(repository, dirName))    
+
+def install_wget(repository, dirName, rely=None):
+    os.system('cd /tmp && wget %s %s' % (repository, dirName))
+
+
+
+method_funcs = {
+        'git': install_git,
+        'git_binary': install_git_binary,
+        'git_cmake':install_git_cmake_rely,
+        'git_make':insstall_git_make_rely,
+        'wget':install_wget,
+        'wget_binary':install_wget_binary,
+        'wget_cmake':install_wget_cmake_rely,
+        'wget_make':insstall_wget_make_rely
+        }
+def install_funs(method, repository, dirName, rely):
+    if method in  method_funcs:
+        method_funcs[method](repository, dirName, rely)
+    else:
+        info("not support method %s, running default git_binary" % method)
+        install_git_binary(repository, dirName, rely)
+
 def install_rely(rely, index):
     if 'repository' not in rely:
         warn("""there is an error, repository not exist.
                 whose index in rely.json is %d""" % count)
         return
     repository= rely['repository']
-    branch = 'release'
-    if 'branch' in rely:
-        branch = rely['branch']
-    info("installing repository %s " % repository)
-    dirName = getDirName(repository)
+    method = oget(rely, 'method', 'git_binary')
+    info("installing repository %s method is %s " % (repository, method))
+    dirName = oget(rely, 'dir_name', getDirName(repository))
     os.system("rm -rf /tmp/" + dirName)
-    os.system('cd /tmp && git clone https://%s --branch %s' % (repository, branch))
-    os.system('rm -rf /tmp/%s/.git' % (dirName))
-    os.system('cp -r /tmp/%s/* ./%s/' % (dirName, third_part))
+    install_funs(method, repository, dirName, rely)
     if 'commands' not in rely :
         return
     commands= rely['commands']
